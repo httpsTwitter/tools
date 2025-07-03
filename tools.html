@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>画像から文字抽出</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    input[type="file"] {
+      margin: 20px 0;
+    }
+    #output {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      background: #222;
+      padding: 10px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📸 画像から文字抽出</h1>
+  <input type="file" accept="image/*" id="imageInput"><br>
+  <div id="output">ここに文字が表示されます</div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const output = document.getElementById('output');
+
+    imageInput.addEventListener('change', async () => {
+      const file = imageInput.files[0];
+      if (!file) return;
+
+      output.textContent = '🔄 読み込み中...';
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const result = await Tesseract.recognize(
+          reader.result,
+          'jpn+eng', // 日本語 + 英語
+          {
+            logger: m => console.log(m)
+          }
+        );
+        output.textContent = result.data.text.trim() || '😢 文字が検出できませんでした';
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
