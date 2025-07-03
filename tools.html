@@ -2,54 +2,108 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <title>高性能OCR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>画像から文字抽出</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>
   <style>
     body {
-      background: #111;
+      background-color: #111;
       color: #fff;
       font-family: sans-serif;
       text-align: center;
       padding: 20px;
     }
-    input[type="file"] {
-      margin: 20px 0;
+    #preview {
+      max-width: 100%;
+      margin: 10px auto;
+      border: 1px solid #444;
     }
-    #output {
+    #progress {
+      margin: 10px;
+    }
+    textarea {
+      width: 90%;
+      height: 200px;
       margin-top: 20px;
-      white-space: pre-wrap;
       background: #222;
+      color: #fff;
+      border: none;
       padding: 10px;
-      border-radius: 10px;
+      border-radius: 8px;
+    }
+    .footer {
+      margin-top: 30px;
+      color: #888;
+      font-size: 14px;
+    }
+    .footer a {
+      color: #888;
+      text-decoration: none;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+      color: #fff;
     }
   </style>
 </head>
 <body>
-  <h1>📸 画像から文字抽出</h1>
-  <input type="file" accept="image/*" id="imageInput"><br>
-  <div id="output">ここに文字が表示されます</div>
+  <h1>📸 高性能OCR</h1>
+  <input type="file" accept="image/*" capture="environment" id="imageInput"><br>
+  <canvas id="preview"></canvas>
+  <div id="progress">進捗: 0%</div>
+  <textarea id="output" readonly>ここに文字が表示されます</textarea>
+
+  <div class="footer">
+    作成者：<a href="https://twitter.com/un0yx_" target="_blank">@un0yx_</a>
+  </div>
 
   <script>
     const imageInput = document.getElementById('imageInput');
+    const canvas = document.getElementById('preview');
+    const ctx = canvas.getContext('2d');
     const output = document.getElementById('output');
+    const progress = document.getElementById('progress');
 
     imageInput.addEventListener('change', async () => {
       const file = imageInput.files[0];
       if (!file) return;
 
-      output.textContent = '🔄 読み込み中...';
-
+      const img = new Image();
       const reader = new FileReader();
-      reader.onload = async () => {
+
+      reader.onload = () => {
+        img.src = reader.result;
+      };
+      img.onload = async () => {
+        const scale = Math.min(800 / img.width, 800 / img.height, 1);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          const value = avg > 128 ? 255 : 0;
+          data[i] = data[i + 1] = data[i + 2] = value;
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+        output.value = '🔄 認識中...';
+        progress.textContent = '進捗: 0%';
+
         const result = await Tesseract.recognize(
-          reader.result,
-          'jpn+eng', // 日本語 + 英語
+          canvas.toDataURL(),
+          'jpn+eng',
           {
-            logger: m => console.log(m)
+            logger: m => {
+              if (m.status === 'recognizing text') {
+                progress.textContent = `進捗: ${Math.round(m.progress * 100)}%`;
+              }
+            }
           }
         );
-        output.textContent = result.data.text.trim() || '😢 文字が検出できませんでした';
+        output.value = result.data.text.trim() || '😢 認識できませんでした';
       };
       reader.readAsDataURL(file);
     });
