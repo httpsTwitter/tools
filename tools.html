@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>高性能OCR</title>
+  <title>高性能OCR（コピー機能付き）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2/dist/tesseract.min.js"></script>
   <style>
@@ -58,10 +58,22 @@
       border-radius: 5px;
       cursor: pointer;
     }
+    #copyBtn {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #copyBtn:hover {
+      background: #444;
+    }
   </style>
 </head>
 <body>
-  <h1>📸 高性能OCR</h1>
+  <h1>📸 高性能OCR（コピー対応）</h1>
 
   <div class="file-buttons">
     <label>
@@ -76,7 +88,8 @@
 
   <canvas id="preview"></canvas>
   <div id="progress">進捗: 0%</div>
-  <textarea id="output" readonly>ここに文字が表示されます</textarea>
+  <textarea id="output" readonly>ここに文字が表示されます</textarea><br>
+  <button id="copyBtn">📋 コピーする</button>
 
   <div class="footer">
     作成者：<a href="https://twitter.com/un0yx_" target="_blank">@un0yx_</a>
@@ -89,6 +102,7 @@
     const ctx = canvas.getContext('2d');
     const output = document.getElementById('output');
     const progress = document.getElementById('progress');
+    const copyBtn = document.getElementById('copyBtn');
 
     function handleImage(file) {
       const img = new Image();
@@ -106,10 +120,12 @@
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
+
+        // 白→黒反転処理（白文字対応）
         for (let i = 0; i < data.length; i += 4) {
-          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          const value = avg > 128 ? 255 : 0;
-          data[i] = data[i + 1] = data[i + 2] = value;
+          data[i]     = 255 - data[i];     // R
+          data[i + 1] = 255 - data[i + 1]; // G
+          data[i + 2] = 255 - data[i + 2]; // B
         }
         ctx.putImageData(imageData, 0, 0);
 
@@ -139,6 +155,15 @@
 
     fileInput.addEventListener('change', () => {
       if (fileInput.files[0]) handleImage(fileInput.files[0]);
+    });
+
+    copyBtn.addEventListener('click', () => {
+      output.select();
+      document.execCommand('copy');
+      copyBtn.textContent = '✅ コピーしました';
+      setTimeout(() => {
+        copyBtn.textContent = '📋 コピーする';
+      }, 1500);
     });
   </script>
 </body>
