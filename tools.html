@@ -44,11 +44,36 @@
       text-decoration: underline;
       color: #fff;
     }
+    .file-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input[type="file"] {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <h1>📸 高性能OCR</h1>
-  <input type="file" accept="image/*" capture="environment" id="imageInput"><br>
+
+  <div class="file-buttons">
+    <label>
+      📸 カメラで撮る
+      <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display:none;">
+    </label>
+    <label>
+      🖼 ファイル / 写真を選択
+      <input type="file" accept="image/*" id="fileInput" style="display:none;">
+    </label>
+  </div>
+
   <canvas id="preview"></canvas>
   <div id="progress">進捗: 0%</div>
   <textarea id="output" readonly>ここに文字が表示されます</textarea>
@@ -58,22 +83,21 @@
   </div>
 
   <script>
-    const imageInput = document.getElementById('imageInput');
+    const cameraInput = document.getElementById('cameraInput');
+    const fileInput = document.getElementById('fileInput');
     const canvas = document.getElementById('preview');
     const ctx = canvas.getContext('2d');
     const output = document.getElementById('output');
     const progress = document.getElementById('progress');
 
-    imageInput.addEventListener('change', async () => {
-      const file = imageInput.files[0];
-      if (!file) return;
-
+    function handleImage(file) {
       const img = new Image();
       const reader = new FileReader();
 
       reader.onload = () => {
         img.src = reader.result;
       };
+
       img.onload = async () => {
         const scale = Math.min(800 / img.width, 800 / img.height, 1);
         canvas.width = img.width * scale;
@@ -105,7 +129,16 @@
         );
         output.value = result.data.text.trim() || '😢 認識できませんでした';
       };
+
       reader.readAsDataURL(file);
+    }
+
+    cameraInput.addEventListener('change', () => {
+      if (cameraInput.files[0]) handleImage(cameraInput.files[0]);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) handleImage(fileInput.files[0]);
     });
   </script>
 </body>
